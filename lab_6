@@ -1,0 +1,206 @@
+#include <iostream>
+#include <iterator>
+#include <cassert>
+#include <cstring>
+template <typename T>
+class Queue {
+private:
+    struct Node {
+        T data;
+        Node* next;
+        Node(T value) : data(value), next(nullptr) {} 
+    };
+
+    Node* head;
+    Node* tail;
+    size_t size;
+
+public:
+
+    class Iterator {
+    private:
+        Node* current;
+
+    public:
+        Iterator(Node* node) : current(node) {}
+
+        T& operator*() {
+            return current->data;
+        }
+
+        Iterator& operator++() {
+            if (current) {
+                current = current->next;
+            }
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            Iterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+        bool operator==(const Iterator& other) const {
+            return current == other.current;
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return current != other.current;
+        }
+    };
+
+    Queue() : head(nullptr), tail(nullptr), size(0) {}
+
+    Queue(T* array, size_t length) : head(nullptr), tail(nullptr), size(0) {
+        for (size_t i = 0; i < length; ++i) {
+            enqueue(array[i]);
+        }
+    }
+
+    Queue(Iterator first, Iterator last) : head(nullptr), tail(nullptr), size(0) {
+        assign(first, last);
+    }
+
+    Queue(const char* str) : head(nullptr), tail(nullptr), size(0) {
+        size_t length = std::strlen(str);
+        for (size_t i = 0; i < length; ++i) {
+            enqueue(str[i]);
+        }
+    }
+
+    ~Queue() {
+        clear();
+    }
+
+    void enqueue(T value) {
+        Node* newNode = new Node(value);
+        if (tail) {
+            tail->next = newNode;
+        }
+        else {
+            head = newNode;
+        }
+        tail = newNode;
+        ++size;
+    }
+
+    void clear() {
+        while (head) {
+            Node* temp = head;
+            head = head->next;
+            delete temp;
+        }
+        tail = nullptr;
+        size = 0;
+    }
+
+    Iterator begin() const {
+        return Iterator(head);
+    }
+
+    Iterator end() const {
+        return Iterator(nullptr);
+    }
+
+    void assign(Iterator first, Iterator last) {
+        clear();
+        for (Iterator it = first; it != last; ++it) {
+            enqueue(*it);
+        }
+    }
+
+    static bool is_equal(Queue& a, Queue& b) {
+        if (a.size != b.size) {
+            return false;
+        }
+        Iterator it1 = a.begin();
+        Iterator it2 = b.begin();
+        while (it1 != a.end() && it2 != b.end()) {
+            if (*it1 != *it2) {
+                return false;
+            }
+            ++it1;
+            ++it2;
+        }
+        return true;
+    }
+
+    Iterator find(const T& value) const {
+        for (Iterator it = begin(); it != end(); ++it) {
+            if (*it == value) {
+                return it;
+            }
+        }
+        return end();
+    }
+
+    Iterator insert(Iterator pos, const T& value) {
+        if (pos == end()) {
+            enqueue(value);
+            return Iterator(tail);
+        }
+
+        Node* newNode = new Node(value);
+        if (pos == begin()) {
+            newNode->next = head;
+            head = newNode;
+            if (tail == nullptr) {
+                tail = newNode;
+            }
+            ++size;
+            return Iterator(newNode);
+        }
+
+        Node* prev = head;
+        while (prev->next != pos.current) {
+            prev = prev->next;
+        }
+        newNode->next = pos.current;
+        prev->next = newNode;
+        ++size;
+        return Iterator(newNode);
+    }
+
+    Iterator erase(Iterator pos) {
+        if (pos == end()) {
+            return end();
+        }
+
+        if (pos == begin()) {
+            Node* temp = head;
+            head = head->next;
+            delete temp;
+            --size;
+            return Iterator(head);
+        }
+
+        Node* prev = head;
+        while (prev->next != pos.current) {
+            prev = prev->next;
+        }
+        Node* temp = pos.current;
+        prev->next = pos.current->next;
+        if (pos.current == tail) {
+            tail = prev;
+        }
+        delete temp;
+        --size;
+        return Iterator(prev->next);
+    }
+};
+
+int main() {
+    int array[] = { 19, 47, 74, 91 };
+    Queue<int> a(array, sizeof(array) / sizeof(array[0]));
+    for (auto it = a.begin(); it != a.end(); ++it) std::cout << *it << " ";
+    std::cout << std::endl;
+    Queue<int> b(a.begin(), a.end());
+    assert(Queue<int>::is_equal(a, b));
+    for (auto it = b.begin(); it != b.end(); ++it) std::cout << *it << " ";
+    std::cout << std::endl;
+    Queue<char> c = "abra";
+    for (auto it = c.begin(); it != c.end(); ++it) std::cout << *it << " ";
+    std::cout << std::endl;
+    std::cout << "All tests passed!" << std::endl;
+}
